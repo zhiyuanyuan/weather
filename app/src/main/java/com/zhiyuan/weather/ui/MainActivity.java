@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
     private MainFragment mMainFragment;
+    private MultiCityFragment mMultiCityFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

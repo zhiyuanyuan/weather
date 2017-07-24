@@ -15,10 +15,10 @@ import com.zhiyuan.weather.bean.Weather;
 import com.zhiyuan.weather.util.ImageLoader;
 import com.zhiyuan.weather.util.PLog;
 import com.zhiyuan.weather.util.SharedPreferenceUtil;
+import com.zhiyuan.weather.util.TimeUitl;
 import com.zhiyuan.weather.util.Util;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
 
 /**
  * Created by admin on 2017/7/21.
@@ -191,6 +191,104 @@ public class WeatherAdapter extends AnimRecyclerViewAdapter<RecyclerView.ViewHol
             }
         }
     }
+    /**
+     * 当日建议
+     */
+    class SuggestionViewHolder extends BaseViewHolder<Weather> {
+        @BindView(R.id.cloth_brief)
+        TextView clothBrief;
+        @BindView(R.id.cloth_txt)
+        TextView clothTxt;
+        @BindView(R.id.sport_brief)
+        TextView sportBrief;
+        @BindView(R.id.sport_txt)
+        TextView sportTxt;
+        @BindView(R.id.travel_brief)
+        TextView travelBrief;
+        @BindView(R.id.travel_txt)
+        TextView travelTxt;
+        @BindView(R.id.flu_brief)
+        TextView fluBrief;
+        @BindView(R.id.flu_txt)
+        TextView fluTxt;
 
+        SuggestionViewHolder(View itemView) {
+            super(itemView);
+        }
 
+        protected void bind(Weather weather) {
+            try {
+                clothBrief.setText(String.format("穿衣指数---%s", weather.suggestion.drsg.brf));
+                clothTxt.setText(weather.suggestion.drsg.txt);
+
+                sportBrief.setText(String.format("运动指数---%s", weather.suggestion.sport.brf));
+                sportTxt.setText(weather.suggestion.sport.txt);
+
+                travelBrief.setText(String.format("旅游指数---%s", weather.suggestion.trav.brf));
+                travelTxt.setText(weather.suggestion.trav.txt);
+
+                fluBrief.setText(String.format("感冒指数---%s", weather.suggestion.flu.brf));
+                fluTxt.setText(weather.suggestion.flu.txt);
+            } catch (Exception e) {
+                PLog.e(e.toString());
+            }
+        }
+    }
+    /**
+     * 未来天气
+     */
+    class ForecastViewHolder extends BaseViewHolder<Weather> {
+        private LinearLayout forecastLinear;
+        private TextView[] forecastDate = new TextView[mWeatherData.dailyForecast.size()];
+        private TextView[] forecastTemp = new TextView[mWeatherData.dailyForecast.size()];
+        private TextView[] forecastTxt = new TextView[mWeatherData.dailyForecast.size()];
+        private ImageView[] forecastIcon = new ImageView[mWeatherData.dailyForecast.size()];
+
+        ForecastViewHolder(View itemView) {
+            super(itemView);
+            forecastLinear = (LinearLayout) itemView.findViewById(R.id.forecast_linear);
+            for (int i = 0; i < mWeatherData.dailyForecast.size(); i++) {
+                View view = View.inflate(mContext, R.layout.item_forecast_line, null);
+                forecastDate[i] = (TextView) view.findViewById(R.id.forecast_date);
+                forecastTemp[i] = (TextView) view.findViewById(R.id.forecast_temp);
+                forecastTxt[i] = (TextView) view.findViewById(R.id.forecast_txt);
+                forecastIcon[i] = (ImageView) view.findViewById(R.id.forecast_icon);
+                forecastLinear.addView(view);
+            }
+        }
+
+        protected void bind(Weather weather) {
+            try {
+                //今日 明日
+                forecastDate[0].setText("今日");
+                forecastDate[1].setText("明日");
+                for (int i = 0; i < weather.dailyForecast.size(); i++) {
+                    if (i > 1) {
+                        try {
+                            forecastDate[i].setText(
+                                    TimeUitl.dayForWeek(weather.dailyForecast.get(i).date));
+                        } catch (Exception e) {
+                            PLog.e(e.toString());
+                        }
+                    }
+                    ImageLoader.load(mContext,
+                            SharedPreferenceUtil.getInstance().getInt(weather.dailyForecast.get(i).cond.txtDay, R.mipmap.none),
+                            forecastIcon[i]);
+                    forecastTemp[i].setText(
+                            String.format("%s℃ - %s℃",
+                                    weather.dailyForecast.get(i).tmp.min,
+                                    weather.dailyForecast.get(i).tmp.max));
+                    forecastTxt[i].setText(
+                            String.format("%s。 %s %s %s km/h。 降水几率 %s%%。",
+                                    weather.dailyForecast.get(i).cond.txtDay,
+                                    weather.dailyForecast.get(i).wind.sc,
+                                    weather.dailyForecast.get(i).wind.dir,
+                                    weather.dailyForecast.get(i).wind.spd,
+                                    weather.dailyForecast.get(i).pop));
+                }
+            } catch (Exception e) {
+                PLog.e(e.toString());
+            }
+        }
+    }
 }

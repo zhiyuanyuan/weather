@@ -14,12 +14,17 @@ import android.widget.ProgressBar;
 import com.zhiyuan.weather.R;
 import com.zhiyuan.weather.adapter.WeatherAdapter;
 import com.zhiyuan.weather.base.BaseFragment;
+import com.zhiyuan.weather.bean.Weather;
+import com.zhiyuan.weather.util.NotificationHelper;
+import com.zhiyuan.weather.util.RetrofitSingleton;
+import com.zhiyuan.weather.util.RxUtil;
 import com.zhiyuan.weather.util.SharedPreferenceUtil;
 import com.zhiyuan.weather.util.ToastUtil;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import io.reactivex.Observable;
 
 /**
  * Created by admin on 2017/7/21.
@@ -35,10 +40,11 @@ public class MainFragment extends BaseFragment {
     @BindView(R.id.progressBar)
     ProgressBar mProgressBar;
     @BindView(R.id.iv_erro)
-    ImageView mIvErro;
+    ImageView mIvError;
     Unbinder unbinder;
     private View view;
-
+    private WeatherAdapter mAdapter;
+    private static Weather mWeather = new Weather();
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
@@ -109,6 +115,17 @@ public class MainFragment extends BaseFragment {
                 })
                 .subscribe();
     }
+
+    /**
+     * 从网络获取
+     */
+    private Observable<Weather> fetchDataByNetWork() {
+        String cityName = SharedPreferenceUtil.getInstance().getCityName();
+        return RetrofitSingleton.getInstance()
+                .fetchWeather(cityName)
+                .compose(RxUtil.fragmentLifecycle(this));
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
