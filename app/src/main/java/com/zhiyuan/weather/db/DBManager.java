@@ -23,7 +23,7 @@ public class DBManager {
 
     private static String TAG = DBManager.class.getSimpleName();
     public static final String DB_NAME = "china_city.db"; //数据库名字
-    public static final String PACKAGE_NAME = "com.xiecc.seeWeather";
+    public static final String PACKAGE_NAME = "com.zhiyuan.weather";
     public static final String DB_PATH = "/data" + Environment.getDataDirectory().getAbsolutePath() + "/" +
         PACKAGE_NAME;  //在手机里存放数据库的位置(/data/data/com.xiecc.seeWeather/china_city.db)
     private SQLiteDatabase database;

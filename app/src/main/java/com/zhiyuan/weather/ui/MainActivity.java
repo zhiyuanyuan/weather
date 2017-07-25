@@ -2,6 +2,7 @@ package com.zhiyuan.weather.ui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
@@ -9,6 +10,8 @@ import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -18,7 +21,13 @@ import android.view.MenuItem;
 
 import com.zhiyuan.weather.R;
 import com.zhiyuan.weather.adapter.HomePagerAdapter;
+import com.zhiyuan.weather.service.AutoUpdateService;
+import com.zhiyuan.weather.util.C;
+import com.zhiyuan.weather.util.CircularAnimUtil;
+import com.zhiyuan.weather.util.DoubleClickExit;
 import com.zhiyuan.weather.util.RxDrawer;
+import com.zhiyuan.weather.util.SharedPreferenceUtil;
+import com.zhiyuan.weather.util.ToastUtil;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -52,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         ButterKnife.bind(this);
         initView();
         initDrawer();
+        initIcon();
+        startService(new Intent(this, AutoUpdateService.class));
     }
 
     /**
@@ -68,9 +79,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             toggle.syncState();
         }
     }
+
     private void initView() {
         setSupportActionBar(mToolbar);
-        mFab.setOnClickListener(v-> showShareDialog());
+        mFab.setOnClickListener(v -> showShareDialog());
         HomePagerAdapter mAdapter = new HomePagerAdapter(getSupportFragmentManager());
         mMainFragment = new MainFragment();
         mMultiCityFragment = new MultiCityFragment();
@@ -78,12 +90,84 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mAdapter.addTab(mMultiCityFragment, "多城市");
         mViewPager.setAdapter(mAdapter);
         mTabLayout.setupWithViewPager(mViewPager, false);
+        mViewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                mFab.post(() -> mFab.hide(new FloatingActionButton.OnVisibilityChangedListener() {
+                    @Override
+                    public void onHidden(FloatingActionButton fab) {
+                        if (position == 1) {
+                            mFab.setImageResource(R.drawable.ic_add_24dp);
+                            mFab.setBackgroundTintList(
+                                    ColorStateList.valueOf(ContextCompat.getColor(MainActivity.this, R.color.colorPrimary)));
+                            mFab.setOnClickListener(v -> {
+                                Intent intent = new Intent(MainActivity.this, ChoiceCityActivity.class);
+                                intent.putExtra(C.MULTI_CHECK, true);
+                                CircularAnimUtil.startActivity(MainActivity.this, intent, mFab,
+                                        R.color.colorPrimary);
+                            });
+                        } else {
+                            mFab.setImageResource(R.drawable.ic_favorite);
+                            mFab.setBackgroundTintList(
+                                    ColorStateList.valueOf(ContextCompat.getColor(MainActivity.this, R.color.colorAccent)));
+                            mFab.setOnClickListener(v -> showShareDialog());
+                        }
+                        fab.show();
+                    }
+                }));
+                if (!mFab.isShown()) {
+                    mFab.show();
+                }
+            }
+        });
     }
 
+    /**
+     * 初始化 Icons
+     */
+    private void initIcon() {
+        if (SharedPreferenceUtil.getInstance().getIconType() == 0) {
+            SharedPreferenceUtil.getInstance().putInt("未知", R.mipmap.none);
+            SharedPreferenceUtil.getInstance().putInt("晴", R.mipmap.type_one_sunny);
+            SharedPreferenceUtil.getInstance().putInt("阴", R.mipmap.type_one_cloudy);
+            SharedPreferenceUtil.getInstance().putInt("多云", R.mipmap.type_one_cloudy);
+            SharedPreferenceUtil.getInstance().putInt("少云", R.mipmap.type_one_cloudy);
+            SharedPreferenceUtil.getInstance().putInt("晴间多云", R.mipmap.type_one_cloudytosunny);
+            SharedPreferenceUtil.getInstance().putInt("小雨", R.mipmap.type_one_light_rain);
+            SharedPreferenceUtil.getInstance().putInt("中雨", R.mipmap.type_one_light_rain);
+            SharedPreferenceUtil.getInstance().putInt("大雨", R.mipmap.type_one_heavy_rain);
+            SharedPreferenceUtil.getInstance().putInt("阵雨", R.mipmap.type_one_thunderstorm);
+            SharedPreferenceUtil.getInstance().putInt("雷阵雨", R.mipmap.type_one_thunder_rain);
+            SharedPreferenceUtil.getInstance().putInt("霾", R.mipmap.type_one_fog);
+            SharedPreferenceUtil.getInstance().putInt("雾", R.mipmap.type_one_fog);
+        } else {
+            SharedPreferenceUtil.getInstance().putInt("未知", R.mipmap.none);
+            SharedPreferenceUtil.getInstance().putInt("晴", R.mipmap.type_two_sunny);
+            SharedPreferenceUtil.getInstance().putInt("阴", R.mipmap.type_two_cloudy);
+            SharedPreferenceUtil.getInstance().putInt("多云", R.mipmap.type_two_cloudy);
+            SharedPreferenceUtil.getInstance().putInt("少云", R.mipmap.type_two_cloudy);
+            SharedPreferenceUtil.getInstance().putInt("晴间多云", R.mipmap.type_two_cloudytosunny);
+            SharedPreferenceUtil.getInstance().putInt("小雨", R.mipmap.type_two_light_rain);
+            SharedPreferenceUtil.getInstance().putInt("中雨", R.mipmap.type_two_rain);
+            SharedPreferenceUtil.getInstance().putInt("大雨", R.mipmap.type_two_rain);
+            SharedPreferenceUtil.getInstance().putInt("阵雨", R.mipmap.type_two_rain);
+            SharedPreferenceUtil.getInstance().putInt("雷阵雨", R.mipmap.type_two_thunderstorm);
+            SharedPreferenceUtil.getInstance().putInt("霾", R.mipmap.type_two_haze);
+            SharedPreferenceUtil.getInstance().putInt("雾", R.mipmap.type_two_fog);
+            SharedPreferenceUtil.getInstance().putInt("雨夹雪", R.mipmap.type_two_snowrain);
+        }
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        initIcon();
+    }
 
     private void showShareDialog() {
         // wait to do
     }
+
     public static void launch(Context context) {
         context.startActivity(new Intent(context, MainActivity.class));
     }
@@ -109,5 +193,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 })
                 .subscribe();
         return false;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+            mDrawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            if (!DoubleClickExit.check()) {
+                ToastUtil.showShort(getString(R.string.double_exit));
+            } else {
+                finish();
+            }
+        }
     }
 }

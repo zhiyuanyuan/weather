@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -43,18 +44,22 @@ import io.reactivex.Observable;
 public class ChoiceCityActivity extends ToolbarActivity {
     private RecyclerView mRecyclerView;
     private ProgressBar mProgressBar;
+
     private ArrayList<String> dataList = new ArrayList<>();
-    private CityAdapter mAdapter;
-    private int currentLevel;
     private Province selectedProvince;
     private List<Province> provincesList = new ArrayList<>();
+    private List<City> cityList;
+    private CityAdapter mAdapter;
+
     public static final int LEVEL_PROVINCE = 1;
     public static final int LEVEL_CITY = 2;
-    private List<City> cityList;
+    private int currentLevel;
+
     private boolean isChecked = false;
+
     @Override
     protected int provideContentViewId() {
-        return    R.layout.activity_choice_city;
+        return R.layout.activity_choice_city;
     }
 
     @Override
@@ -66,6 +71,7 @@ public class ChoiceCityActivity extends ToolbarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         initView();
+
         Observable.create(emitter -> {
             DBManager.getInstance().openDatabase();
             emitter.onNext(Irrelevant.INSTANCE);
@@ -118,31 +124,7 @@ public class ChoiceCityActivity extends ToolbarActivity {
             }
         });
     }
-    /**
-     * 查询选中省份的所有城市，从数据库查询
-     */
-    private void queryCities() {
-        getToolbar().setTitle("选择城市");
-        dataList.clear();
-        mAdapter.notifyDataSetChanged();
 
-        Flowable.create((FlowableOnSubscribe<String>) emitter -> {
-            cityList = WeatherDB.loadCities(DBManager.getInstance().getDatabase(), selectedProvince.mProSort);
-            for (City city : cityList) {
-                emitter.onNext(city.mCityName);
-            }
-            emitter.onComplete();
-        }, BackpressureStrategy.BUFFER)
-                .compose(RxUtil.ioF())
-                .compose(RxUtil.activityLifecycleF(this))
-                .doOnNext(proName -> dataList.add(proName))
-                .doOnComplete(() -> {
-                    currentLevel = LEVEL_CITY;
-                    mAdapter.notifyDataSetChanged();
-                    mRecyclerView.smoothScrollToPosition(0);
-                })
-                .subscribe();
-    }
     /**
      * 查询全国所有的省，从数据库查询
      */
@@ -169,20 +151,13 @@ public class ChoiceCityActivity extends ToolbarActivity {
                 .subscribe();
     }
 
-    private void showTips() {
-        new AlertDialog.Builder(this)
-                .setTitle("多城市管理模式")
-                .setMessage("您现在是多城市管理模式,直接点击即可新增城市.如果暂时不需要添加,"
-                        + "在右上选项中关闭即可像往常一样操作.\n因为 api 次数限制的影响,多城市列表最多三个城市.(๑′ᴗ‵๑)")
-                .setPositiveButton("明白", (dialog, which) -> dialog.dismiss())
-                .setNegativeButton("不再提示", (dialog, which) -> SharedPreferenceUtil.getInstance().putBoolean("Tips", false))
-                .show();
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.multi_city_menu, menu);
+        menu.getItem(0).setChecked(isChecked);
+        return true;
     }
 
-    private void quit() {
-        ChoiceCityActivity.this.finish();
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.multi_check) {
@@ -195,6 +170,33 @@ public class ChoiceCityActivity extends ToolbarActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+
+    /**
+     * 查询选中省份的所有城市，从数据库查询
+     */
+    private void queryCities() {
+        getToolbar().setTitle("选择城市");
+        dataList.clear();
+        mAdapter.notifyDataSetChanged();
+
+        Flowable.create((FlowableOnSubscribe<String>) emitter -> {
+            cityList = WeatherDB.loadCities(DBManager.getInstance().getDatabase(), selectedProvince.mProSort);
+            for (City city : cityList) {
+                emitter.onNext(city.mCityName);
+            }
+            emitter.onComplete();
+        }, BackpressureStrategy.BUFFER)
+                .compose(RxUtil.ioF())
+                .compose(RxUtil.activityLifecycleF(this))
+                .doOnNext(proName -> dataList.add(proName))
+                .doOnComplete(() -> {
+                    currentLevel = LEVEL_CITY;
+                    mAdapter.notifyDataSetChanged();
+                    mRecyclerView.smoothScrollToPosition(0);
+                })
+                .subscribe();
+    }
+
     @Override
     public void onBackPressed() {
         if (currentLevel == LEVEL_PROVINCE) {
@@ -215,4 +217,18 @@ public class ChoiceCityActivity extends ToolbarActivity {
         DBManager.getInstance().closeDatabase();
     }
 
+    private void showTips() {
+        new AlertDialog.Builder(this)
+                .setTitle("多城市管理模式")
+                .setMessage("您现在是多城市管理模式,直接点击即可新增城市.如果暂时不需要添加,"
+                        + "在右上选项中关闭即可像往常一样操作.\n因为 api 次数限制的影响,多城市列表最多三个城市.(๑′ᴗ‵๑)")
+                .setPositiveButton("明白", (dialog, which) -> dialog.dismiss())
+                .setNegativeButton("不再提示", (dialog, which) -> SharedPreferenceUtil.getInstance().putBoolean("Tips", false))
+                .show();
+    }
+
+    private void quit() {
+        ChoiceCityActivity.this.finish();
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
 }
