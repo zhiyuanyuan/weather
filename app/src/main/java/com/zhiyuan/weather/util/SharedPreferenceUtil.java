@@ -37,7 +37,8 @@ public class SharedPreferenceUtil {
     }
 
     private SharedPreferenceUtil() {
-        mPrefs = BaseApplication.getAppContext().getSharedPreferences("setting", Context.MODE_PRIVATE);
+        mPrefs = BaseApplication.getAppContext()
+                .getSharedPreferences("setting", Context.MODE_PRIVATE);
     }
 
     public SharedPreferenceUtil putInt(String key, int value) {
